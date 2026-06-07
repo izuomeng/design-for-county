@@ -4,6 +4,7 @@ import { createExecutePlanTool } from "./execute-plan-tool";
 import { createSubagentTool, SUBAGENT_SERVER_ENABLED } from "./subagent-tool";
 import { askUser } from "./ask-user-tool";
 import { imageOcr } from "./image-ocr-tool";
+import { generateImage } from "./generate-image-tool";
 import { readPdf } from "./read-pdf-tool";
 import type { ToolRetryTracker } from "./retry-tracker";
 import {
@@ -27,6 +28,7 @@ export const serverTools = {
   getServerStatus,
   echo,
   imageOcr,
+  generateImage,
   readPdf,
 };
 
@@ -288,6 +290,7 @@ export function getMergedTools(
   const tools: Record<string, Tool<any, any>> = {
     askUser,
     imageOcr,
+    generateImage,
     readPdf,
     // ...serverTools,
     ...getBrowserTools(connectionId, retryTracker),

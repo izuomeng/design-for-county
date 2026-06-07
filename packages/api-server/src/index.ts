@@ -9,6 +9,8 @@ import {
 } from "oceanmcp-shared";
 import { handleChatRequest } from "./routes/chat";
 import { handleGenerateTitleRequest } from "./routes/generate-title";
+import { IMAGE_DIR, IMAGE_ROUTE_PREFIX } from "./ai/tools/image-store";
+import { join } from "node:path";
 import { connectionManager } from "./ws/connection-manager";
 import { initSkills, getSkillsContext } from "./ai/prompts";
 import { loadSkillsFromZip } from "./ai/skills";
@@ -43,6 +45,27 @@ const server = Bun.serve<{ connectionId: string }>({
     // ── Health check ────────────────────────────────────────────────────
     if (url.pathname === "/health") {
       return new Response("OK", { status: 200 });
+    }
+
+    // ── Generated images (static) ───────────────────────────────────────
+    if (req.method === "GET" && url.pathname.startsWith(IMAGE_ROUTE_PREFIX)) {
+      const fileName = decodeURIComponent(
+        url.pathname.slice(IMAGE_ROUTE_PREFIX.length),
+      );
+      // Guard against path traversal — only allow a bare filename.
+      if (!fileName || fileName.includes("/") || fileName.includes("..")) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const file = Bun.file(join(IMAGE_DIR, fileName));
+      if (!(await file.exists())) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return new Response(file, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
     }
 
     // ── Chat API ────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ import { FlowNodeCard, CollapsibleError } from "./FlowNodeCard";
 import { ApprovalButtons } from "./ApprovalButtons";
 import { AskUserCard } from "./AskUserCard";
 import { SubagentCard } from "./SubagentCard";
+import { GeneratedImageCard } from "./GeneratedImageCard";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { functionRegistry, skillRegistry } from "../registry";
 import { isDOMRenderDescriptor, DOMContainer } from "./DOMContainer";
@@ -724,7 +725,7 @@ function getToolName(part: any): string {
 function isToolMetaPart(part: any): boolean {
   if (!isToolPart(part)) return false;
   const toolName = getToolName(part);
-  if (toolName === "executePlan" || toolName === "userSelect" || toolName === "askUser" || toolName === "subagent") return false;
+  if (toolName === "executePlan" || toolName === "userSelect" || toolName === "askUser" || toolName === "subagent" || toolName === "generateImage") return false;
   if (part.state === TOOL_PART_STATE.APPROVAL_REQUESTED) return false;
   return true;
 }
@@ -971,6 +972,21 @@ export function MessageRenderer({
                 streamingActive={streamingActive}
               />
             )}
+          </div>
+        );
+      }
+
+      // generateImage tool — render the produced image with zoom + download
+      if (toolName === "generateImage") {
+        return (
+          <div key={toolCallId || index}>
+            <GeneratedImageCard
+              state={state}
+              input={input}
+              output={output}
+              errorText={errorText}
+              streamingActive={streamingActive}
+            />
           </div>
         );
       }
