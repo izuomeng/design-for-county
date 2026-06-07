@@ -197,19 +197,20 @@ export const generateImage = tool({
       logger.info("[generateImage] referenceImageUrls: (none)");
     }
 
-    try {
+    // One full generation attempt: call OpenAI, extract image data, persist it.
+    const attempt = async (): Promise<
+      { ok: true; payload: Record<string, unknown> } | { ok: false; error: string }
+    > => {
       const result = hasReferences
         ? await generateFromReferences(apiKey, prompt, size, quality, n, referenceImageUrls!)
         : await generateFromPrompt(apiKey, prompt, size, quality, n);
 
-      if (!result.ok) {
-        return { success: false, error: result.error };
-      }
+      if (!result.ok) return { ok: false, error: result.error };
 
       const items = result.data?.data ?? [];
       const withData = items.filter((it) => it?.b64_json);
       if (withData.length === 0) {
-        return { success: false, error: "OpenAI returned no image data." };
+        return { ok: false, error: "OpenAI returned no image data." };
       }
 
       const images = await Promise.all(
@@ -224,22 +225,40 @@ export const generateImage = tool({
       );
 
       return {
-        success: true,
-        images,
-        // First-image fields kept at top level for backward compatibility with
-        // the inline GeneratedImageCard renderer.
-        url: images[0].url,
-        fileName: images[0].fileName,
-        revisedPrompt: images[0].revisedPrompt,
-        prompt,
-        size,
-        quality,
-        model: OPENAI_IMAGE_MODEL,
+        ok: true,
+        payload: {
+          success: true,
+          images,
+          // First-image fields kept at top level for backward compatibility with
+          // the inline GeneratedImageCard renderer.
+          url: images[0].url,
+          fileName: images[0].fileName,
+          revisedPrompt: images[0].revisedPrompt,
+          prompt,
+          size,
+          quality,
+          model: OPENAI_IMAGE_MODEL,
+        },
       };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      logger.error(`[generateImage] failed: ${message}`);
-      return { success: false, error: message };
+    };
+
+    // Auto-retry once on any failure so transient errors (rate limits, empty
+    // responses, dropped connections) never reach the user — they only see an
+    // error if a second attempt also fails.
+    const MAX_ATTEMPTS = 2;
+    let lastError = "Image generation failed.";
+    for (let i = 1; i <= MAX_ATTEMPTS; i++) {
+      try {
+        const r = await attempt();
+        if (r.ok) return r.payload;
+        lastError = r.error;
+        logger.warn(`[generateImage] attempt ${i}/${MAX_ATTEMPTS} failed: ${r.error}`);
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+        logger.warn(`[generateImage] attempt ${i}/${MAX_ATTEMPTS} threw: ${lastError}`);
+      }
     }
+    logger.error(`[generateImage] all ${MAX_ATTEMPTS} attempts failed: ${lastError}`);
+    return { success: false, error: lastError };
   },
 });
