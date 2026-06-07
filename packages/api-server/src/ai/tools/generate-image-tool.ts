@@ -173,6 +173,12 @@ export const generateImage = tool({
       };
     }
 
+    // The agent sometimes serializes the prompt with literal "\n" two-char
+    // sequences instead of real newlines, which collapses the structured
+    // fields into one line and degrades the model's section recognition.
+    // Normalize them back to real newlines as a safety net.
+    prompt = prompt.replace(/\\n/g, "\n");
+
     const hasReferences = Array.isArray(referenceImageUrls) && referenceImageUrls.length > 0;
 
     // Print the exact prompt and reference images the agent is sending to
