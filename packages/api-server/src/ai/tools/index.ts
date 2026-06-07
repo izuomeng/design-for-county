@@ -6,6 +6,7 @@ import { askUser } from "./ask-user-tool";
 import { imageOcr } from "./image-ocr-tool";
 import { generateImage } from "./generate-image-tool";
 import { selectStyle, confirmBrief } from "./packaging-tools";
+import { searchReferences } from "./search-references-tool";
 import { readPdf } from "./read-pdf-tool";
 import type { ToolRetryTracker } from "./retry-tracker";
 import {
@@ -32,6 +33,7 @@ export const serverTools = {
   generateImage,
   selectStyle,
   confirmBrief,
+  searchReferences,
   readPdf,
 };
 
@@ -296,6 +298,7 @@ export function getMergedTools(
     generateImage,
     selectStyle,
     confirmBrief,
+    searchReferences,
     readPdf,
     // ...serverTools,
     ...getBrowserTools(connectionId, retryTracker),

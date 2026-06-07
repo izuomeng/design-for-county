@@ -10,6 +10,10 @@ import {
 import { handleChatRequest } from "./routes/chat";
 import { handleGenerateTitleRequest } from "./routes/generate-title";
 import { IMAGE_DIR, IMAGE_ROUTE_PREFIX, saveImageBytes } from "./ai/tools/image-store";
+import {
+  REFERENCE_ROUTE_PREFIX,
+  getReferenceImagePath,
+} from "./ai/tools/reference-store";
 import { join } from "node:path";
 import { connectionManager } from "./ws/connection-manager";
 import { initSkills, getSkillsContext } from "./ai/prompts";
@@ -57,6 +61,33 @@ const server = Bun.serve<{ connectionId: string }>({
         return new Response("Bad Request", { status: 400 });
       }
       const file = Bun.file(join(IMAGE_DIR, fileName));
+      if (!(await file.exists())) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return new Response(file, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
+    }
+
+    // ── Reference library images (static) ───────────────────────────────
+    // Serves the county packaging-reference effect images (assets/images/),
+    // which the searchReferences tool surfaces as candidate URLs.
+    if (req.method === "GET" && url.pathname.startsWith(REFERENCE_ROUTE_PREFIX)) {
+      const fileName = decodeURIComponent(
+        url.pathname.slice(REFERENCE_ROUTE_PREFIX.length),
+      );
+      // Guard against path traversal — only allow a bare filename.
+      if (!fileName || fileName.includes("/") || fileName.includes("..")) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const path = getReferenceImagePath(fileName);
+      if (!path) {
+        return new Response("Not Found", { status: 404 });
+      }
+      const file = Bun.file(path);
       if (!(await file.exists())) {
         return new Response("Not Found", { status: 404 });
       }
