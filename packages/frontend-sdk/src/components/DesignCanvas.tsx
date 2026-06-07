@@ -257,6 +257,13 @@ function BriefCard({
     : typeof b.sellingPoints === "string" && b.sellingPoints
       ? [b.sellingPoints]
       : [];
+  const structure: string[] = Array.isArray(b.structure)
+    ? b.structure
+    : typeof b.structure === "string" && b.structure
+      ? [b.structure]
+      : [];
+  // `visualStyle` is the current field name; `style` kept for backward compat.
+  const visualStyle = b.visualStyle ?? b.style;
   const row = (label: string, value?: React.ReactNode) =>
     value ? (
       <div className="flex gap-3 py-2 border-b border-border last:border-0">
@@ -270,9 +277,19 @@ function BriefCard({
       <CanvasTitle>{tt("确认信息 · 准备生图", "Confirm · ready to generate")}</CanvasTitle>
       <div className="rounded-xl border border-border bg-surface shadow-card px-4 py-2">
         {row(tt("品类", "Category"), b.category)}
-        {row(tt("风格", "Style"), b.style)}
         {row(tt("产品名", "Product"), b.productName)}
+        {row(tt("规格", "Spec"), b.spec)}
         {row(tt("产地", "Origin"), b.origin)}
+        {row(tt("文化锚点", "Culture"), b.culturalAnchor)}
+        {row(tt("视觉风格", "Style"), visualStyle)}
+        {row(tt("主视觉", "Visual"), b.visualType)}
+        {row(tt("字体", "Font"), b.fontTone)}
+        {row(tt("版式", "Layout"), b.layout)}
+        {row(tt("Logo", "Logo"), b.logoPos)}
+        {row(tt("结构", "Structure"), structure.length ? structure.join(" · ") : undefined)}
+        {row(tt("主色", "Color"), b.mainColor)}
+        {row(tt("包装", "Pack"), b.packForm)}
+        {row(tt("画面", "Scene"), b.mainVisual)}
         {row(tt("卖点", "Points"), points.length ? points.join(" · ") : undefined)}
         {Array.isArray(b.productPhotoUrls) && b.productPhotoUrls.length ? (
           <div className="flex gap-2 py-2">

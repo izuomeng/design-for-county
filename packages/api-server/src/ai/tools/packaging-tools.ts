@@ -46,26 +46,81 @@ export const selectStyle = tool({
  * "🎨 开始生成" button. Call this AFTER all info is collected and BEFORE
  * `generateImage`. The agent must NOT auto-generate; generation is an explicit,
  * user-initiated action (PRD §6.2).
+ *
+ * Besides the basic fields, it carries the structured design dimensions that
+ * the collection flow gathers (see SKILL.md「采集字段清单」): the 3 free-text
+ * fields (productName / spec / mainVisual) and the 8 preset fields
+ * (visualStyle / visualType / fontTone / layout / logoPos / structure /
+ * mainColor / packForm), plus the context-bound culturalAnchor. The summary
+ * card renders these so the user can review the full brief before generating,
+ * and they map 1:1 to the SKILL.md「Prompt 组装」template.
  */
 export const confirmBrief = tool({
   description:
-    "Show a design-brief summary card (style / product / origin / selling points) " +
-    "with a prominent '🎨 开始生成 · 一次出 2~3 张' button in the right canvas. " +
-    "Call this AFTER all necessary info is collected and BEFORE generateImage. " +
+    "Show a design-brief summary card (product / spec / style / layout / color / " +
+    "main-visual / selling points) with a prominent '🎨 开始生成 · 一次出 2~3 张' " +
+    "button in the right canvas. Call this AFTER all necessary info is collected " +
+    "and BEFORE generateImage. Pass every design field you gathered (the 3 " +
+    "free-text fields and the 8 preset fields) so the card shows the full brief. " +
     "Do NOT auto-generate — wait for the user to press the button. " +
     "Returns { confirmed: true } once the user starts generation.",
   inputSchema: z.object({
-    category: z.string(),
-    style: z.string().optional().describe("Chosen style label."),
-    productName: z.string().describe("Product name to print on the packaging."),
-    origin: z.string().optional().describe("产地 / origin."),
+    category: z.string().describe("品类大类，如 干货农副 / 即食零食 / 蜂蜜."),
+    productName: z.string().describe("产品名 — printed as the main title."),
+    spec: z.string().optional().describe("规格 / weight, e.g. 500g."),
+    origin: z.string().optional().describe("产地 / origin (county)."),
+    // ── 8 preset design dimensions (values from SKILL.md「预设选项库」) ──
+    visualStyle: z
+      .string()
+      .optional()
+      .describe("视觉风格 label, e.g. 民俗绘画. From selectStyle."),
+    visualType: z
+      .string()
+      .optional()
+      .describe("主视觉类型: 插画 / 摄影实拍 / 文字图形."),
+    fontTone: z
+      .string()
+      .optional()
+      .describe("字体调性, e.g. 厚重黑体."),
+    layout: z
+      .string()
+      .optional()
+      .describe("版式骨架: 上下分区型 / 居中型 / 满铺图."),
+    logoPos: z
+      .string()
+      .optional()
+      .describe("Logo 位置, e.g. 顶部右."),
+    structure: z
+      .array(z.string())
+      .optional()
+      .describe("结构惯例 (multi-select): 开窗 / 腰封 / 全包."),
+    mainColor: z
+      .string()
+      .optional()
+      .describe("主色, e.g. 黄色系."),
+    packForm: z
+      .string()
+      .optional()
+      .describe("包装形态, e.g. 袋装."),
+    // ── core free-text field ──
+    mainVisual: z
+      .string()
+      .optional()
+      .describe("主视觉描述 — the scene/illustration description."),
+    // ── context-bound ──
+    culturalAnchor: z
+      .string()
+      .optional()
+      .describe("文化锚点, e.g. 宜君农民画 (bound to the county)."),
     sellingPoints: z
       .array(z.string())
       .optional()
-      .describe("Selling points to feature."),
+      .describe("Selling points to feature (optional)."),
     productPhotoUrls: z
       .array(z.string())
       .optional()
-      .describe("Uploaded product photo URLs (for image-to-image generation)."),
+      .describe(
+        "Uploaded product photo / reference image URLs (for image-to-image generation).",
+      ),
   }),
 });
