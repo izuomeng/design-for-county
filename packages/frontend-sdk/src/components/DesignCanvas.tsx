@@ -46,7 +46,8 @@ interface PendingStyle {
 }
 interface SelectedStyle {
   label?: string;
-  thumbnailUrl?: string;
+  /** Thumbnails of every picked reference, in selection order (first = 主参考). */
+  thumbnailUrls: string[];
   auto: boolean;
   /** How many references the user picked (multi-select). */
   count: number;
@@ -95,10 +96,20 @@ function deriveCanvasState(messages: any[]): CanvasState {
           if (!out.denied) {
             const styleId = out.styleId;
             const match = options.find((o) => o.id === styleId);
-            const count = Array.isArray(out.styles) ? out.styles.length : match ? 1 : 0;
+            const picks: any[] = Array.isArray(out.styles) ? out.styles : [];
+            // Resolve every pick's thumbnail from the original options.
+            const thumbnailUrls =
+              picks.length > 0
+                ? picks
+                    .map((s) => options.find((o) => o.id === s?.styleId)?.thumbnailUrl)
+                    .filter((u): u is string => Boolean(u))
+                : match?.thumbnailUrl
+                  ? [match.thumbnailUrl]
+                  : [];
+            const count = picks.length > 0 ? picks.length : match ? 1 : 0;
             selectedStyle = {
               label: out.label || match?.label,
-              thumbnailUrl: match?.thumbnailUrl,
+              thumbnailUrls,
               auto: styleId === "auto" || !match,
               count,
             };
@@ -257,9 +268,6 @@ function StyleGrid({
               {/* Show the full reference image (no cropping) so the user sees the
                   complete packaging design before picking. */}
               <SmartImage src={opt.thumbnailUrl} alt={opt.label} minSkeletonHeight={160} />
-              <div className="px-3 py-2 text-sm font-medium text-text-primary truncate">
-                {opt.label}
-              </div>
             </button>
           );
         })}
@@ -287,28 +295,54 @@ function StyleGrid({
 // ─── #2 Selected-style state (shown while collecting info) ───────────────────
 
 function SelectedStyleView({ selected }: { selected: SelectedStyle }) {
+  // Render up to 3 thumbnails as a stacked deck; the front card is the 主参考.
+  const urls = selected.thumbnailUrls.slice(0, 3);
+  const backCards = urls.slice(1); // sit behind the front card, fanned out
+
   return (
     <CanvasShell>
-      <CanvasTitle>{tt("已选风格", "Selected style")}</CanvasTitle>
-      <div className="rounded-2xl border-2 border-ocean-400 bg-surface overflow-hidden shadow-card max-w-xs mx-auto">
-        {selected.thumbnailUrl ? (
-          <SmartImage src={selected.thumbnailUrl} alt={selected.label} minSkeletonHeight={200} />
-        ) : (
-          <div className="aspect-[3/4] flex items-center justify-center text-5xl bg-surface-tertiary">
-            ✨
+      <CanvasTitle>
+        {tt("已选风格", "Selected style")}
+        {selected.count > 1 ? ` · ${selected.count} ${tt("张", "refs")}` : ""}
+      </CanvasTitle>
+      {/* Right/bottom padding so the rotated back cards can peek without clipping. */}
+      <div className="relative max-w-xs mx-auto pr-5 pb-5">
+        {backCards.map((u, i) => (
+          <div
+            key={`bg-${i}`}
+            aria-hidden
+            className="absolute inset-0 rounded-2xl border border-ocean-200 bg-surface overflow-hidden shadow-card"
+            style={{
+              transform: `rotate(${(i + 1) * 4}deg) translate(${(i + 1) * 8}px, ${(i + 1) * 6}px)`,
+              zIndex: i,
+            }}
+          >
+            <SmartImage src={u} alt="" minSkeletonHeight={200} />
           </div>
-        )}
-        <div className="px-4 py-3 flex items-center gap-2">
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ocean-500 text-white text-xs">
-            ✓
-          </span>
-          <span className="text-sm font-semibold text-text-primary">
-            {selected.auto
-              ? tt("由 AI 为你挑选风格", "AI-picked style")
-              : selected.count > 1
-                ? tt(`${selected.label} 等 ${selected.count} 张参考`, `${selected.label} +${selected.count - 1} more`)
-                : selected.label}
-          </span>
+        ))}
+        <div
+          className="relative rounded-2xl border-2 border-ocean-400 bg-surface overflow-hidden shadow-card"
+          style={{ zIndex: backCards.length + 1 }}
+        >
+          {urls[0] ? (
+            <SmartImage src={urls[0]} alt={selected.label} minSkeletonHeight={200} />
+          ) : (
+            <div className="aspect-[3/4] flex items-center justify-center text-5xl bg-surface-tertiary">
+              ✨
+            </div>
+          )}
+          <div className="px-4 py-3 flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ocean-500 text-white text-xs">
+              ✓
+            </span>
+            <span className="text-sm font-semibold text-text-primary">
+              {selected.auto
+                ? tt("由 AI 为你挑选风格", "AI-picked style")
+                : selected.count > 1
+                  ? tt(`${selected.label} 等 ${selected.count} 张参考`, `${selected.label} +${selected.count - 1} more`)
+                  : selected.label}
+            </span>
+          </div>
         </div>
       </div>
       <p className="mt-5 text-center text-sm text-text-secondary">
