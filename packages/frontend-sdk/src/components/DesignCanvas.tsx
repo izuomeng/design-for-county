@@ -244,6 +244,12 @@ function StyleGrid({
         {tt("挑你喜欢的风格（可多选）", "Pick the styles you like (multi-select)")}
         {pending.category ? ` · ${pending.category}` : ""}
       </CanvasTitle>
+      <p className="text-xs text-text-tertiary -mt-3 mb-4">
+        {tt(
+          "建议选 3~4 张参考图，生成效果最好。",
+          "Tip: pick 3–4 references for the best results.",
+        )}
+      </p>
       <div className="columns-2 gap-3 [column-fill:_balance]">
         {pending.options.map((opt) => {
           const idx = selectedIds.indexOf(opt.id);
