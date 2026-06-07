@@ -193,7 +193,9 @@ const privateLLM = createOpenAICompatible({
   // Gemini reject multi-step tool-use requests.
   name: "google",
   baseURL: process.env.LLM_BASE_URL || "https://api.openai.com/v1",
-  apiKey: process.env.LLM_API_KEY,
+  // Fall back to the image-generation key so the chat LLM can reuse the same
+  // OpenAI key without duplicating the secret in .env.
+  apiKey: process.env.LLM_API_KEY || process.env.OPENAI_API_KEY,
   headers: {
     ...(process.env.LLM_TOKEN
       ? { "X-Custom-Auth": process.env.LLM_TOKEN }

@@ -79,6 +79,8 @@ export interface MountOptions {
   locale?: import("./runtime/sdk-config").SupportedLocale;
   /** URL or data-URI for the assistant avatar image. */
   avatar?: string;
+  /** URL or data-URI of a large logo shown on the chat welcome screen (replaces the default). */
+  welcomeLogo?: string;
   /** Custom welcome screen title. */
   welcomeTitle?: string;
   /** Custom welcome screen description / subtitle. */

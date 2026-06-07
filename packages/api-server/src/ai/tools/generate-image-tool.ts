@@ -6,9 +6,13 @@ import { logger } from "../../logger";
 const SIZES = ["1024x1024", "1536x1024", "1024x1536", "auto"] as const;
 const QUALITIES = ["low", "medium", "high", "auto"] as const;
 
-const OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations";
-const OPENAI_IMAGE_EDIT_ENDPOINT = "https://api.openai.com/v1/images/edits";
-const OPENAI_IMAGE_MODEL = "gpt-image-1";
+// Endpoints and model are configurable via env so the image backend can be
+// swapped without code changes. Defaults target OpenAI's latest model.
+const OPENAI_IMAGE_ENDPOINT =
+  process.env.OPENAI_IMAGE_ENDPOINT ?? "https://api.openai.com/v1/images/generations";
+const OPENAI_IMAGE_EDIT_ENDPOINT =
+  process.env.OPENAI_IMAGE_EDIT_ENDPOINT ?? "https://api.openai.com/v1/images/edits";
+const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2";
 
 interface OpenAIImageResponse {
   data?: { b64_json?: string; revised_prompt?: string }[];
@@ -79,7 +83,7 @@ async function generateFromReferences(
     }
     const buf = await imgResp.arrayBuffer();
     const contentType = imgResp.headers.get("content-type") || "image/png";
-    // gpt-image-1 accepts multiple reference images via repeated `image[]`.
+    // gpt-image models accept multiple reference images via repeated `image[]`.
     form.append("image[]", new Blob([buf], { type: contentType }), "reference.png");
   }
 
@@ -99,13 +103,14 @@ async function generateFromReferences(
 /**
  * Generate one or more images from a text prompt (optionally guided by
  * reference product photos) using OpenAI's official image model
- * (gpt-image-1). Returned base64 data is persisted to disk and exposed as
+ * (gpt-image-2 by default; configurable via OPENAI_IMAGE_MODEL). Returned
+ * base64 data is persisted to disk and exposed as
  * URLs, so the chat transcript stays small and the frontend can display,
  * zoom, and download each result.
  */
 export const generateImage = tool({
   description:
-    "Generate one or more images from a text prompt using OpenAI's gpt-image-1 model. " +
+    "Generate one or more images from a text prompt using OpenAI's gpt-image-2 model. " +
     "Use this whenever the user asks to create, draw, generate, paint, design, " +
     "or illustrate an image, picture, photo, logo, icon, artwork, or product packaging. " +
     "Set `n` to 2 or 3 to offer the user several options at once. Pass " +

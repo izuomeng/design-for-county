@@ -162,8 +162,8 @@ function Welcome() {
         </h2>
         <p className="text-sm text-text-secondary">
           {tt(
-            "看看大家做出来的包装，在左侧告诉我你卖什么，几步就能出图。",
-            "Browse sample packaging — tell me what you sell on the left to start.",
+            "看看大家做出来的包装。在左侧把你要做的产品（类别）发给我，比如核桃、蜂蜜、鸡蛋…几步就能出图。",
+            "Browse sample packaging. Tell me what product (category) you want on the left to start.",
           )}
         </p>
       </div>
@@ -308,6 +308,7 @@ function BriefCard({
         {row(tt("品类", "Category"), b.category)}
         {row(tt("产品名", "Product"), b.productName)}
         {row(tt("净含量", "Net wt."), b.spec)}
+        {row(tt("口味", "Flavor"), b.flavor)}
         {row(tt("产地", "Origin"), b.origin)}
         {row(tt("文化锚点", "Culture"), b.culturalAnchor)}
         {row(tt("视觉风格", "Style"), visualStyle)}

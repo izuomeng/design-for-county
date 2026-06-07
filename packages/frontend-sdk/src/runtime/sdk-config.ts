@@ -59,6 +59,8 @@ export type SubagentConfig = {
 export type SDKConfig = {
   locale?: SupportedLocale;
   avatar?: string;
+  /** URL/data-URI of a large logo shown on the chat welcome screen (replaces the default). */
+  welcomeLogo?: string;
   welcomeTitle?: string;
   welcomeDescription?: string;
   /** LLM model configuration sent to the api-server on each chat request. */
@@ -138,6 +140,14 @@ export const sdkConfig = {
 
   set avatar(value: string | undefined) {
     config.avatar = value;
+  },
+
+  get welcomeLogo(): string | undefined {
+    return config.welcomeLogo;
+  },
+
+  set welcomeLogo(value: string | undefined) {
+    config.welcomeLogo = value;
   },
 
   get welcomeTitle(): string | undefined {

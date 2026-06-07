@@ -111,6 +111,9 @@ function mountOceanMCP(target?: MountTarget | MountOptions) {
     if (options.avatar) {
       sdkConfig.avatar = options.avatar;
     }
+    if (options.welcomeLogo !== undefined) {
+      sdkConfig.welcomeLogo = options.welcomeLogo;
+    }
     if (options.welcomeTitle !== undefined) {
       sdkConfig.welcomeTitle = options.welcomeTitle;
     }

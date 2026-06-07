@@ -78,9 +78,10 @@ function specTier(spec: string): string {
 export const searchReferences = tool({
   description:
     "Search the county packaging-design reference library for real effect " +
-    "images to show the user. Call this AFTER collecting the 3 base answers " +
-    "(productName / spec / packForm). Ranks by category (inferred from the " +
-    "product name when not given), pack form, and spec tier, and always " +
+    "images to show the user. Call this AFTER collecting the base answers " +
+    "(productName / spec; flavor for snacks). Pack form is asked AFTER style " +
+    "selection, so usually omit it here. Ranks by category (inferred from the " +
+    "product name when not given), pack form (if given), and spec tier, and always " +
     "returns the best available rows. Each result includes an `imageUrl` plus " +
     "every design field (visualStyle / layout / mainColor / culturalAnchor / " +
     "mainVisual / fontTone …). Show the results to the user with `selectStyle` " +

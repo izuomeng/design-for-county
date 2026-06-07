@@ -19,11 +19,14 @@ OceanMCPSDK.mount({
   root: "ocean-mcp-root",
   studio: true,
   locale: "zh-CN",
+  welcomeLogo: "/logo.png",
   welcomeTitle: "寻美 · AI 包装小助手",
-  welcomeDescription: "告诉我你卖什么，我帮你几步出一版能下载的包装图。",
+  welcomeDescription:
+    "想做哪种产品的包装？先把你要做的产品（类别）发给我，比如：核桃、蜂蜜、鸡蛋、茶、果干…",
   suggestions: [
-    { label: "我想做蜂蜜的包装" },
-    { label: "给我的茶叶设计个包装" },
-    { label: "果干包装" },
+    { label: "核桃", text: "我要做核桃的包装" },
+    { label: "蜂蜜", text: "我要做蜂蜜的包装" },
+    { label: "鸡蛋", text: "我要做鸡蛋的包装" },
+    { label: "果干", text: "我要做果干的包装" },
   ],
 });

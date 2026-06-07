@@ -68,6 +68,7 @@ export const confirmBrief = tool({
     category: z.string().describe("品类大类，如 干货农副 / 即食零食 / 蜂蜜."),
     productName: z.string().describe("产品名 — printed as the main title."),
     spec: z.string().optional().describe("净含量 / net weight, hand-filled number, e.g. 250g / 500g / 1kg / 500ml."),
+    flavor: z.string().optional().describe("口味 / flavor (snacks only), e.g. 原味 / 麻辣 / 五香."),
     origin: z.string().optional().describe("产地 / origin (county)."),
     // ── 8 preset design dimensions (values from SKILL.md「预设选项库」) ──
     visualStyle: z
