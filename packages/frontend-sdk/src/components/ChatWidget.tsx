@@ -1303,7 +1303,7 @@ export function ChatWidget({ avatar }: { avatar?: string }) {
                     "https://pub-46b4307a6ac249dda431cdfd7f715021.r2.dev/uploads/oceanmcp.png"
                   }
                   alt={welcomeTitle ?? "logo"}
-                  className="h-28 object-contain mb-6"
+                  className="h-[300px] object-contain mb-6"
                 />
               )}
               {avatar && (
