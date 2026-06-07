@@ -4,6 +4,10 @@
 BACKEND_PORT  ?= 4001
 FRONTEND_PORT ?= 3001
 
+# Make uses /bin/sh, which does not load the interactive shell profile, so
+# tools installed under ~/.bun/bin (bun) aren't on PATH. Add them explicitly.
+export PATH := $(HOME)/.bun/bin:$(PATH)
+
 .PHONY: dev backend frontend kill kill-backend kill-frontend stop
 
 ## 同时启动前后端（先清理占用端口）
