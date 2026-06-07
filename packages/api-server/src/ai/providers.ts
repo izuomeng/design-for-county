@@ -153,6 +153,46 @@ function injectThinkingParams(bodyObj: Record<string, any>): boolean {
 // ── Custom fetch: thinking/reasoning parameter injection ─────────────────────
 
 /**
+ * Whether an error is a transient connection-reset that's safe to retry with a
+ * fresh connection. Bun's keep-alive pool can hand back a socket the upstream
+ * has already closed, surfacing as ECONNRESET / "socket connection was closed"
+ * — intermittent and recoverable by simply dialing again.
+ */
+function isConnectionResetError(err: unknown): boolean {
+  const e = err as { code?: string; message?: string; cause?: { code?: string } } | undefined;
+  const code = e?.code ?? e?.cause?.code;
+  if (code === "ECONNRESET" || code === "EPIPE" || code === "ECONNREFUSED" || code === "ETIMEDOUT") {
+    return true;
+  }
+  const msg = String(e?.message ?? err ?? "");
+  return /socket connection was closed|ECONNRESET|connection reset|other side closed|terminated/i.test(msg);
+}
+
+/**
+ * `globalThis.fetch` with a small retry on connection-reset errors. The reset
+ * happens before the response body is read, so re-dialing is safe (no partial
+ * stream consumed). This complements the AI SDK's own retry, which may otherwise
+ * reuse the same dead keep-alive socket.
+ */
+async function fetchWithConnRetry(
+  input: RequestInfo | URL,
+  init: RequestInit | undefined,
+  attempts = 3,
+): Promise<Response> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await globalThis.fetch(input, init);
+    } catch (err) {
+      lastErr = err;
+      if (i === attempts - 1 || !isConnectionResetError(err)) throw err;
+      await new Promise((r) => setTimeout(r, 250 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Custom fetch wrapper that injects thinking/reasoning parameters into the
  * request body based on the detected model family.
  */
@@ -178,7 +218,7 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     }
   }
 
-  return globalThis.fetch(input, actualInit);
+  return fetchWithConnRetry(input, actualInit);
 };
 
 // ── Private / Self-Hosted LLM Adapter ────────────────────────────────────────

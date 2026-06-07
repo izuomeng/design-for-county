@@ -157,6 +157,9 @@ export async function handleChatRequest(req: Request): Promise<Response> {
         messages: modelMessages,
         tools: mergedTools,
         maxOutputTokens: resolveMaxTokens(modelConfig?.maxTokens),
+        // Survive transient upstream connection resets (ECONNRESET) — the
+        // provider's customFetch also re-dials on reset (see providers.ts).
+        maxRetries: 4,
         stopWhen: stepCountIs(100),
       }),
     );
