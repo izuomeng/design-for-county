@@ -204,7 +204,7 @@ function StyleGrid({
         {tt("挑一个你喜欢的风格", "Pick a style you like")}
         {pending.category ? ` · ${pending.category}` : ""}
       </CanvasTitle>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="columns-2 gap-3 [column-fill:_balance]">
         {pending.options.map((opt) => (
           <button
             key={opt.id}
@@ -212,16 +212,16 @@ function StyleGrid({
             onClick={() =>
               onPick({ styleId: opt.id, label: opt.label, promptAnchor: opt.promptAnchor })
             }
-            className="group text-left rounded-xl border border-border bg-surface overflow-hidden shadow-card hover:border-ocean-400 hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="group block w-full mb-3 break-inside-avoid text-left rounded-xl border border-border bg-surface overflow-hidden shadow-card hover:border-ocean-400 hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <div className="aspect-[3/4] w-full bg-surface-tertiary overflow-hidden">
-              <img
-                src={opt.thumbnailUrl}
-                alt={opt.label}
-                loading="lazy"
-                className="block w-full h-full object-cover group-hover:scale-[1.03] transition-transform"
-              />
-            </div>
+            {/* Show the full reference image (no cropping) so the user sees the
+                complete packaging design before picking. */}
+            <img
+              src={opt.thumbnailUrl}
+              alt={opt.label}
+              loading="lazy"
+              className="block w-full h-auto bg-surface-tertiary"
+            />
             <div className="px-3 py-2 text-sm font-medium text-text-primary truncate">
               {opt.label}
             </div>
