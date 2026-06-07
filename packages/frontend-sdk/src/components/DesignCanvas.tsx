@@ -2,6 +2,7 @@ import React, { useState, useSyncExternalStore } from "react";
 import type { StyleOption, GenerationResult } from "oceanmcp-shared";
 import { sdkConfig } from "../runtime/sdk-config";
 import { studioStore } from "../studio/studio-store";
+import { selectedImageStore } from "../studio/selected-image-store";
 import { downloadImage, ImageLightbox } from "./GeneratedImageCard";
 
 const zh = () => sdkConfig.locale === "zh-CN";
@@ -37,6 +38,10 @@ interface CanvasState {
   generating: boolean;
   results?: GenerationResult[];
   selectedStyle?: SelectedStyle;
+  /** A confirmBrief was confirmed (user pressed 开始生成) at some point. */
+  briefConfirmed: boolean;
+  /** The most recent generateImage settled with an error / no images. */
+  generateErrored: boolean;
 }
 
 function isAnswered(part: any): boolean {
@@ -50,6 +55,8 @@ function deriveCanvasState(messages: any[]): CanvasState {
   let generating = false;
   let results: GenerationResult[] | undefined;
   let selectedStyle: SelectedStyle | undefined;
+  let briefConfirmed = false;
+  let generateErrored = false;
 
   for (const msg of messages ?? []) {
     if (!Array.isArray(msg?.parts)) continue;
@@ -74,26 +81,44 @@ function deriveCanvasState(messages: any[]): CanvasState {
         }
       } else if (type === "tool-confirmBrief") {
         pendingBriefId = !isAnswered(part) ? part.toolCallId : undefined;
+        if (isAnswered(part) && (part.output as any)?.confirmed) {
+          briefConfirmed = true;
+        }
       } else if (type === "tool-generateImage") {
         const settled =
           part.state === "output-available" || part.state === "output-error";
         if (!settled) {
           generating = true;
           results = undefined;
+          generateErrored = false;
         } else {
           generating = false;
           const out = part.output;
           if (out?.success && Array.isArray(out.images) && out.images.length > 0) {
             results = out.images as GenerationResult[];
+            generateErrored = false;
           } else if (out?.url) {
             results = [{ url: out.url, fileName: out.fileName ?? "image.png" }];
+            generateErrored = false;
+          } else {
+            // settled but produced no usable image → treat as errored
+            results = undefined;
+            generateErrored = true;
           }
         }
       }
     }
   }
 
-  return { pendingStyle, pendingBriefId, generating, results, selectedStyle };
+  return {
+    pendingStyle,
+    pendingBriefId,
+    generating,
+    results,
+    selectedStyle,
+    briefConfirmed,
+    generateErrored,
+  };
 }
 
 // ─── Shell ─────────────────────────────────────────────────────────────────
@@ -348,17 +373,29 @@ function Gallery({
   disabled: boolean;
 }) {
   const [zoom, setZoom] = useState<GenerationResult | null>(null);
-  const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
+  // The selection is shared with the chat input (shown as a tag there), so
+  // read it from the store rather than local state — removing the tag in the
+  // chat input clears the highlight here too.
+  const selected = useSyncExternalStore(
+    selectedImageStore.subscribe,
+    selectedImageStore.getSnapshot,
+    selectedImageStore.getSnapshot,
+  );
+  const selectedUrl = selected?.url ?? null;
 
   const select = (r: GenerationResult) => {
     if (disabled) return;
-    setSelectedUrl(r.url);
+    // Toggle: tapping the selected image again clears it.
+    if (selectedUrl === r.url) {
+      selectedImageStore.clear();
+      return;
+    }
     onSelect(r);
   };
 
   return (
     <CanvasShell>
-      <CanvasTitle>{tt("生成结果 · 点选一张继续", "Results · tap one to continue")}</CanvasTitle>
+      <CanvasTitle>{tt("生成结果 · 选一张让 AI 接着改", "Results · pick one for the AI to edit")}</CanvasTitle>
       <div className={`grid gap-3 ${results.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
         {results.map((r, i) => {
           const isSel = selectedUrl === r.url;
@@ -373,7 +410,7 @@ function Gallery({
                 onClick={() => select(r)}
                 disabled={disabled}
                 className="relative block w-full group cursor-pointer disabled:cursor-not-allowed"
-                title={tt("选这张，让 AI 基于它继续", "Pick this — continue from it")}
+                title={tt("选这张，让 AI 在它基础上继续编辑", "Pick this — the AI will edit from it")}
               >
                 <img src={r.url} alt={r.fileName} loading="lazy" className="block w-full h-auto" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
@@ -404,8 +441,8 @@ function Gallery({
 
       <p className="mt-4 text-center text-xs text-text-tertiary">
         {selectedUrl
-          ? tt("已选中这张，AI 正在基于它继续…", "Selected — AI is continuing from it…")
-          : tt("点选一张让 AI 基于它继续；想换风格/改细节请在左侧告诉我", "Tap one to continue; ask for changes on the left")}
+          ? tt("已选中这张，去左侧告诉 AI 想怎么改", "Selected — tell the AI how to edit it on the left")
+          : tt("选一张图，AI 就能在它的基础上继续编辑", "Pick one and the AI can keep editing it")}
       </p>
 
       {zoom && (
@@ -428,9 +465,27 @@ export function DesignCanvas() {
     studioStore.getSnapshot,
   );
 
-  const { pendingStyle, pendingBriefId, generating, results, selectedStyle } =
-    deriveCanvasState(runtime.messages);
+  const {
+    pendingStyle,
+    pendingBriefId,
+    generating,
+    results,
+    selectedStyle,
+    briefConfirmed,
+    generateErrored,
+  } = deriveCanvasState(runtime.messages);
   const busy = runtime.status === "streaming" || runtime.status === "submitted";
+
+  // Loading is shown only while we're *actively* working toward a generation.
+  // - During generation: `generating` is true, but require `busy` too so that
+  //   pressing Stop (which ends streaming but leaves the tool part unsettled)
+  //   doesn't leave the canvas stuck on the loading screen (issue #3).
+  // - Right after the brief is confirmed but before the generateImage call has
+  //   streamed in, `generating` is still false; bridge that gap with
+  //   `briefConfirmed` so the previous "已选风格" card doesn't flash (issue #1).
+  const showLoading = generating
+    ? busy
+    : busy && briefConfirmed && !generateErrored && !results && !pendingStyle && !pendingBriefId;
 
   // pendingBrief input lookup (kept out of derive to avoid threading the object)
   const briefInput = pendingBriefId
@@ -459,19 +514,17 @@ export function DesignCanvas() {
       />
     );
   }
-  if (generating) return <Loading />;
+  if (showLoading) return <Loading />;
   if (results && results.length > 0) {
     return (
       <Gallery
         results={results}
-        disabled={busy || !runtime.sendMessage}
+        // Selecting an image no longer sends a message — it just records the
+        // pick as a reference (shown as a tag above the chat input) for the
+        // next turn. So it stays enabled while the chat is busy.
+        disabled={false}
         onSelect={(r) =>
-          runtime.sendMessage?.({
-            text: tt(
-              `我选这一张，请基于这张图的方向继续优化（参考图：${r.url}）`,
-              `I pick this one — continue from it (reference: ${r.url})`,
-            ),
-          })
+          selectedImageStore.set({ url: r.url, fileName: r.fileName })
         }
       />
     );

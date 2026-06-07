@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import React, { useRef, useEffect, useState, useMemo, useCallback, useSyncExternalStore } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import {
@@ -13,6 +13,7 @@ import { wsClient } from "../runtime/ws-client";
 import { chatBridge } from "../runtime/chat-bridge";
 import { uploadRegistry } from "../runtime/upload-registry";
 import { studioStore } from "../studio/studio-store";
+import { selectedImageStore } from "../studio/selected-image-store";
 import {
   addSdkBreadcrumb,
   captureException,
@@ -42,6 +43,18 @@ import { SessionList } from "./SessionList";
 
 const AUTO_DENY_REASON =
   "User sent a new message instead of responding to approval";
+
+/**
+ * Build a leading markdown blockquote that references a picked image. The
+ * outgoing user message carries this so (a) the model receives the image URL
+ * as context for the next edit, and (b) MessageRenderer renders it as a
+ * quote-styled reference above the user's text bubble.
+ */
+function buildImageRefQuote(url: string): string {
+  const zh = sdkConfig.locale === "zh-CN";
+  const caption = zh ? "基于这张参考图继续编辑" : "Editing from this reference image";
+  return `> 🖼️ ${caption}\n> ${url}\n\n`;
+}
 
 type PendingFile = {
   id: string;
@@ -421,6 +434,11 @@ export function ChatWidget({ avatar }: { avatar?: string }) {
   const isAtBottomRef = useRef(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState("");
+  const selectedImage = useSyncExternalStore(
+    selectedImageStore.subscribe,
+    selectedImageStore.getSnapshot,
+    selectedImageStore.getSnapshot,
+  );
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [stopRequested, setStopRequested] = useState(false);
@@ -609,8 +627,9 @@ export function ChatWidget({ avatar }: { avatar?: string }) {
 
     const hasText = input.trim();
     const readyFiles = pendingFiles.filter((f) => f.status === "ready");
+    const imageRef = selectedImage;
 
-    if (!hasText && readyFiles.length === 0) return;
+    if (!hasText && readyFiles.length === 0 && !imageRef) return;
 
     const parsed = parseSlashCommand(input);
     if (parsed && readyFiles.length === 0) {
@@ -626,6 +645,8 @@ export function ChatWidget({ avatar }: { avatar?: string }) {
     const value = input;
     setInput("");
     setPendingFiles([]);
+    // Consume the picked image — it's now folded into this message.
+    selectedImageStore.clear();
 
     const normalized = denyPendingInteractions(messages as any[]);
     if (normalized.changed) {
@@ -633,9 +654,15 @@ export function ChatWidget({ avatar }: { avatar?: string }) {
     }
 
     const parts: any[] = [];
-    
-    if (hasText) {
-      parts.push({ type: MESSAGE_PART_TYPE.TEXT, text: value });
+
+    // Prepend the picked image as a markdown blockquote reference so it shows
+    // above the bubble and reaches the model as context for the next edit.
+    const messageText = imageRef
+      ? buildImageRefQuote(imageRef.url) + (hasText ? value : "")
+      : value;
+
+    if (hasText || imageRef) {
+      parts.push({ type: MESSAGE_PART_TYPE.TEXT, text: messageText });
     }
     
     if (readyFiles.length > 0) {
@@ -1411,6 +1438,31 @@ export function ChatWidget({ avatar }: { avatar?: string }) {
                 </div>
               </div>
             )}
+            {/* Selected-image reference tag (carried into the next turn) */}
+            {selectedImage && (
+              <div className="px-4 pt-3 pb-2 border-b border-border/30">
+                <div className="inline-flex items-center gap-2 max-w-full rounded-lg border border-ocean-300 bg-ocean-50 pl-1 pr-2 py-1">
+                  <img
+                    src={selectedImage.url}
+                    alt={selectedImage.fileName || "reference"}
+                    className="w-8 h-8 rounded-md object-cover shrink-0"
+                  />
+                  <span className="text-xs text-ocean-700 truncate">
+                    {sdkConfig.locale === "zh-CN"
+                      ? "已选参考图，将随消息发送"
+                      : "Reference image attached"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => selectedImageStore.clear()}
+                    className="shrink-0 w-4 h-4 rounded-full bg-ocean-200 text-ocean-700 text-xs flex items-center justify-center hover:bg-ocean-300 transition-colors cursor-pointer"
+                    title={sdkConfig.locale === "zh-CN" ? "移除参考图" : "Remove reference"}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
             <textarea
               ref={inputRef}
               value={input}
@@ -1470,11 +1522,11 @@ export function ChatWidget({ avatar }: { avatar?: string }) {
                 <button
                   type="submit"
                   disabled={
-                    (!input.trim() && pendingFiles.filter(f => f.status === "ready").length === 0) ||
+                    (!input.trim() && pendingFiles.filter(f => f.status === "ready").length === 0 && !selectedImage) ||
                     pendingFiles.some(f => f.status === "uploading")
                   }
                   className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
-                    (input.trim() || pendingFiles.some(f => f.status === "ready")) &&
+                    (input.trim() || pendingFiles.some(f => f.status === "ready") || selectedImage) &&
                     !pendingFiles.some(f => f.status === "uploading")
                       ? "bg-ocean-600 text-white hover:bg-ocean-700 shadow-sm"
                       : "bg-surface-tertiary text-text-tertiary"

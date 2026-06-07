@@ -546,6 +546,52 @@ function LoadSkillGroupCard({ parts }: { parts: any[] }) {
   );
 }
 
+/**
+ * Split a leading markdown blockquote off the front of `text`. Returns the
+ * raw quote (lines beginning with `>`, joined) and the remaining body. If the
+ * text doesn't start with a blockquote, `quote` is null.
+ */
+function splitLeadingBlockquote(text: string): { quote: string | null; body: string } {
+  const lines = text.split("\n");
+  let i = 0;
+  const quoteLines: string[] = [];
+  while (i < lines.length && /^\s*>/.test(lines[i])) {
+    quoteLines.push(lines[i].replace(/^\s*>\s?/, ""));
+    i += 1;
+  }
+  if (quoteLines.length === 0) return { quote: null, body: text };
+  // Skip blank separator lines between the quote and the body.
+  while (i < lines.length && lines[i].trim() === "") i += 1;
+  return { quote: quoteLines.join("\n"), body: lines.slice(i).join("\n") };
+}
+
+const URL_RE = /(https?:\/\/[^\s)]+)/;
+
+/**
+ * Quote-styled reference block shown above a user bubble when the message
+ * references a picked image. Extracts the first URL for a thumbnail and shows
+ * the remaining text as a caption.
+ */
+function ImageRefQuote({ raw }: { raw: string }) {
+  const urlMatch = raw.match(URL_RE);
+  const url = urlMatch?.[1];
+  const caption = raw.replace(URL_RE, "").trim();
+  return (
+    <div className="max-w-full flex items-center gap-2 border-l-2 border-ocean-400 bg-surface-tertiary rounded-r-lg pl-2 pr-3 py-1.5">
+      {url && (
+        <img
+          src={url}
+          alt={caption || "reference"}
+          className="w-9 h-9 rounded-md object-cover shrink-0"
+        />
+      )}
+      <span className="text-xs text-text-secondary break-words">
+        {caption || url}
+      </span>
+    </div>
+  );
+}
+
 type MessageRendererProps = {
   message: UIMessage;
   onApprove: (
@@ -1127,6 +1173,26 @@ export function MessageRenderer({
     // 6. Text Parts (with potential <think> tags)
     if (part.type === MESSAGE_PART_TYPE.TEXT) {
       const text = typeof part.text === "string" ? part.text : "";
+
+      // User messages may carry a leading markdown blockquote that references a
+      // picked image (see ChatWidget.buildImageRefQuote). Render that as a
+      // quote-styled reference block above the bubble, and keep the rest as the
+      // normal user bubble.
+      if (isUser) {
+        const { quote, body } = splitLeadingBlockquote(text);
+        if (quote) {
+          return (
+            <div key={index} className="flex flex-col items-end gap-1.5">
+              <ImageRefQuote raw={quote} />
+              {body.trim() && (
+                <div className="inline-block px-4 py-2.5 rounded-2xl bg-ocean-600 text-white text-sm leading-relaxed">
+                  {body}
+                </div>
+              )}
+            </div>
+          );
+        }
+      }
 
       // Regex to process <think> tags
       const parts: React.ReactNode[] = [];
