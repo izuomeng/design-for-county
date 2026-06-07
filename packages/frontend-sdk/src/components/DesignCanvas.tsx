@@ -1,6 +1,7 @@
 import React, { useState, useSyncExternalStore } from "react";
 import type { StyleOption, GenerationResult } from "oceanmcp-shared";
 import { sdkConfig } from "../runtime/sdk-config";
+import { API_URL } from "../config";
 import { studioStore } from "../studio/studio-store";
 import { selectedImageStore } from "../studio/selected-image-store";
 import { downloadImage, ImageLightbox } from "./GeneratedImageCard";
@@ -8,17 +9,24 @@ import { downloadImage, ImageLightbox } from "./GeneratedImageCard";
 const zh = () => sdkConfig.locale === "zh-CN";
 const tt = (cn: string, en: string) => (zh() ? cn : en);
 
-/** Placeholder showcase designs for the initial welcome state (#1). */
-const SAMPLE_DESIGNS = [
-  "https://placehold.co/400x560/F4C430/4A2C00?text=Honey",
-  "https://placehold.co/400x560/8C1F28/F5E6C8?text=Tea",
-  "https://placehold.co/400x560/FF7F50/4A1C00?text=Fruit",
-  "https://placehold.co/400x560/3A5A40/EAF3E0?text=Rice",
-  "https://placehold.co/400x560/2F4F4F/F5F5DC?text=Nuts",
-  "https://placehold.co/400x560/D2B48C/3A2410?text=Honey+2",
-  "https://placehold.co/400x560/6B4226/F5E6C8?text=Tea+2",
-  "https://placehold.co/400x560/C25B3A/FFE8D6?text=Fruit+2",
+/**
+ * Showcase designs for the initial welcome state (#1) — real 宜君 reference
+ * packaging served by the api-server's `/reference-images/` route (see
+ * reference-store.ts). File names come from assets/乡村包装设计解构.csv.
+ */
+const SAMPLE_DESIGN_FILES = [
+  "1-宜君核桃-宜君核桃.png",
+  "4-宜君荞面饸饹-宜君荞面饸饹(1kg长条袋).jpg",
+  "5-宜君木耳-宜君木耳.png",
+  "8-宜君老蜂蜜-宜君老蜂蜜.png",
+  "9-宜君西瓜-宜君西瓜礼盒.png",
+  "13-宜君手撕兔-宜君手撕兔.jpg",
+  "16-宜君玉米糁-宜君玉米糁.jpg.jpg",
+  "19-宜君核桃花椒锅巴-核桃花椒锅巴.png",
 ];
+const SAMPLE_DESIGNS = SAMPLE_DESIGN_FILES.map(
+  (f) => `${API_URL}/reference-images/${encodeURIComponent(f)}`,
+);
 
 // ─── Derived canvas state ──────────────────────────────────────────────────
 
