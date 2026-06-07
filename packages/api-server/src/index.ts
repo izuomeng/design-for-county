@@ -22,6 +22,21 @@ import { logger } from "./logger";
 
 const PORT = Number(process.env.PORT) || 4001;
 
+/**
+ * Decode a URL path segment, returning null on malformed percent-encoding.
+ *
+ * Streaming clients can request truncated URLs (e.g. a percent sequence cut
+ * mid-byte like `%E6%A1`), which makes `decodeURIComponent` throw a URIError.
+ * We treat those as bad requests instead of letting the handler blow up.
+ */
+function safeDecodePathSegment(raw: string): string | null {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+}
+
 // ── Initialize the skills system before starting the server ──────────────────
 // Skills are discovered from configured directories (e.g. packages/api-server/skills/).
 // This must complete before the server starts accepting chat requests, so the
@@ -53,10 +68,10 @@ const server = Bun.serve<{ connectionId: string }>({
 
     // ── Generated images (static) ───────────────────────────────────────
     if (req.method === "GET" && url.pathname.startsWith(IMAGE_ROUTE_PREFIX)) {
-      const fileName = decodeURIComponent(
+      const fileName = safeDecodePathSegment(
         url.pathname.slice(IMAGE_ROUTE_PREFIX.length),
       );
-      // Guard against path traversal — only allow a bare filename.
+      // Guard against malformed encoding + path traversal — bare filename only.
       if (!fileName || fileName.includes("/") || fileName.includes("..")) {
         return new Response("Bad Request", { status: 400 });
       }
@@ -76,10 +91,10 @@ const server = Bun.serve<{ connectionId: string }>({
     // Serves the county packaging-reference effect images (assets/images/),
     // which the searchReferences tool surfaces as candidate URLs.
     if (req.method === "GET" && url.pathname.startsWith(REFERENCE_ROUTE_PREFIX)) {
-      const fileName = decodeURIComponent(
+      const fileName = safeDecodePathSegment(
         url.pathname.slice(REFERENCE_ROUTE_PREFIX.length),
       );
-      // Guard against path traversal — only allow a bare filename.
+      // Guard against malformed encoding + path traversal — bare filename only.
       if (!fileName || fileName.includes("/") || fileName.includes("..")) {
         return new Response("Bad Request", { status: 400 });
       }
