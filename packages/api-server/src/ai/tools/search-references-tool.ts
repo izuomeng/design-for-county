@@ -99,8 +99,10 @@ export const searchReferences = tool({
     packForm: z
       .string()
       .optional()
-      .describe("包装形态, e.g. 袋装 / 礼盒装 / 罐装 / 瓶装."),
-    spec: z.string().optional().describe("规格, e.g. 500g / 1kg / 礼盒."),
+      .describe(
+        "包装形态 (one of: 袋装 / 普通盒装 / 礼盒装 / 瓶装 / 罐装 / 天然材质袋 / 箱装).",
+      ),
+    spec: z.string().optional().describe("净含量 / net weight, hand-filled, e.g. 250g / 500g / 1kg / 500ml."),
     county: z
       .string()
       .optional()

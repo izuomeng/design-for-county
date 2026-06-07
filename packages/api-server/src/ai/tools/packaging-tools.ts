@@ -67,7 +67,7 @@ export const confirmBrief = tool({
   inputSchema: z.object({
     category: z.string().describe("品类大类，如 干货农副 / 即食零食 / 蜂蜜."),
     productName: z.string().describe("产品名 — printed as the main title."),
-    spec: z.string().optional().describe("规格 / weight, e.g. 500g."),
+    spec: z.string().optional().describe("净含量 / net weight, hand-filled number, e.g. 250g / 500g / 1kg / 500ml."),
     origin: z.string().optional().describe("产地 / origin (county)."),
     // ── 8 preset design dimensions (values from SKILL.md「预设选项库」) ──
     visualStyle: z
@@ -101,7 +101,9 @@ export const confirmBrief = tool({
     packForm: z
       .string()
       .optional()
-      .describe("包装形态, e.g. 袋装."),
+      .describe(
+        "包装形态 (one of: 袋装 / 普通盒装 / 礼盒装 / 瓶装 / 罐装 / 天然材质袋 / 箱装).",
+      ),
     // ── core free-text field ──
     mainVisual: z
       .string()

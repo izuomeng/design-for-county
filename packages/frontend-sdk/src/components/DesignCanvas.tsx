@@ -23,6 +23,14 @@ const SAMPLE_DESIGN_FILES = [
   "13-宜君手撕兔-宜君手撕兔.jpg",
   "16-宜君玉米糁-宜君玉米糁.jpg.jpg",
   "19-宜君核桃花椒锅巴-核桃花椒锅巴.png",
+  "2-宜君党参-宜君党参.png",
+  "6-宜君核桃仁-宜君核桃仁(红袋).png",
+  "11-宜君核桃乳-宜君核桃乳.png",
+  "12-宜君小酒缸-宜君小酒缸(45度白酒).png",
+  "15-宜君苹果-宜君苹果礼盒手提袋.png",
+  "18-蜂解柠檬蜜汁-宜君柠檬蜜汁.png",
+  "3-宜君玉米糁-宜君玉米糁(白布袋).png",
+  "21-宜君核桃仁-宜君核桃仁.png",
 ];
 const SAMPLE_DESIGNS = SAMPLE_DESIGN_FILES.map(
   (f) => `${API_URL}/reference-images/${encodeURIComponent(f)}`,
@@ -160,24 +168,12 @@ function Welcome() {
         </p>
       </div>
 
-      {/* Carousel row 1 */}
-      <div className="flex gap-3 overflow-x-auto ocean-scrollbar pb-3 snap-x">
+      {/* Pinterest-style masonry waterfall */}
+      <div className="columns-2 md:columns-3 gap-3 [column-fill:_balance]">
         {SAMPLE_DESIGNS.map((src) => (
           <div
             key={src}
-            className="shrink-0 w-40 snap-start rounded-xl border border-border bg-surface overflow-hidden shadow-card"
-          >
-            <img src={src} alt="sample" loading="lazy" className="block w-full h-auto" />
-          </div>
-        ))}
-      </div>
-
-      {/* Carousel row 2 (reversed for visual variety) */}
-      <div className="flex gap-3 overflow-x-auto ocean-scrollbar pt-1 snap-x">
-        {[...SAMPLE_DESIGNS].reverse().map((src) => (
-          <div
-            key={"r-" + src}
-            className="shrink-0 w-40 snap-start rounded-xl border border-border bg-surface overflow-hidden shadow-card"
+            className="mb-3 break-inside-avoid rounded-xl border border-border bg-surface overflow-hidden shadow-card hover:shadow-lg transition-shadow"
           >
             <img src={src} alt="sample" loading="lazy" className="block w-full h-auto" />
           </div>
@@ -311,7 +307,7 @@ function BriefCard({
       <div className="rounded-xl border border-border bg-surface shadow-card px-4 py-2">
         {row(tt("品类", "Category"), b.category)}
         {row(tt("产品名", "Product"), b.productName)}
-        {row(tt("规格", "Spec"), b.spec)}
+        {row(tt("净含量", "Net wt."), b.spec)}
         {row(tt("产地", "Origin"), b.origin)}
         {row(tt("文化锚点", "Culture"), b.culturalAnchor)}
         {row(tt("视觉风格", "Style"), visualStyle)}
