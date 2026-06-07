@@ -311,6 +311,54 @@ describe("normalizeStaleInteractions", () => {
     });
   });
 
+  // ─── Packaging canvas tools (selectStyle / confirmBrief) ─────────────
+
+  describe("packaging canvas tools auto-deny", () => {
+    function pendingPart(toolName: string, toolCallId: string) {
+      return {
+        type: `tool-${toolName}`,
+        toolCallId,
+        state: "input-available",
+        input: { options: [{ id: "s1", thumbnailUrl: "u", label: "A" }] },
+      };
+    }
+
+    test("denies pending selectStyle when later user message exists", () => {
+      const part = pendingPart("selectStyle", "style-1");
+      const messages = [
+        assistantMsg([part]),
+        userMsg("你现在的参考图是怎么搜出来的"),
+      ];
+
+      const result = normalizeStaleInteractions(messages);
+      const deniedPart = result[0].parts[0];
+
+      expect(deniedPart.state).toBe("output-denied");
+      expect(deniedPart.output.denied).toBe(true);
+      // AI SDK v6 reads approval.reason when converting to model messages.
+      expect(typeof deniedPart.approval.reason).toBe("string");
+      expect(deniedPart.toolCallId).toBe("style-1");
+    });
+
+    test("denies pending confirmBrief when later user message exists", () => {
+      const part = pendingPart("confirmBrief", "brief-1");
+      const messages = [assistantMsg([part]), userMsg("等下，先改个名字")];
+
+      const result = normalizeStaleInteractions(messages);
+      expect(result[0].parts[0].state).toBe("output-denied");
+      expect(result[0].parts[0].output.denied).toBe(true);
+    });
+
+    test("does NOT deny pending selectStyle when no later user message", () => {
+      const part = pendingPart("selectStyle", "style-1");
+      const messages = [assistantMsg([part])];
+
+      const result = normalizeStaleInteractions(messages);
+      expect(result[0]).toBe(messages[0]);
+      expect(result[0].parts[0].state).toBe("input-available");
+    });
+  });
+
   // ─── Mixed scenarios ─────────────────────────────────────────────────
 
   describe("mixed approval + userSelect", () => {

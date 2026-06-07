@@ -131,10 +131,16 @@ function shouldAutoDeny(part: any): boolean {
   );
 }
 
-function isPendingAskUser(part: any): boolean {
+// Client-side interactive tools that wait on the user via an "input-available"
+// part. If the user sends a new message instead of responding, these must be
+// auto-denied so the dangling tool_call gets a tool result (see
+// normalize-stale-interactions.ts on the server for the authoritative fix).
+const PENDING_DENY_TOOLS = new Set(["askUser", "selectStyle", "confirmBrief"]);
+
+function isPendingClientTool(part: any): boolean {
   return (
     isToolPart(part) &&
-    getToolName(part) === "askUser" &&
+    PENDING_DENY_TOOLS.has(getToolName(part)) &&
     part.state === TOOL_PART_STATE.INPUT_AVAILABLE
   );
 }
@@ -318,8 +324,9 @@ function denyPendingInteractions(messages: any[]): {
         };
       }
 
-      // Handle pending askUser parts
-      if (isPendingAskUser(part)) {
+      // Handle pending client-side interactive tools (askUser / selectStyle /
+      // confirmBrief) the user left unanswered.
+      if (isPendingClientTool(part)) {
         messageChanged = true;
         changed = true;
 

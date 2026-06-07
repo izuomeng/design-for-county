@@ -295,3 +295,19 @@ const server = Bun.serve<{ connectionId: string }>({
 logger.info(
   `OceanMCP API Server running on http://localhost:${server.port}`,
 );
+
+// ── Env sanity check ─────────────────────────────────────────────────────────
+// Confirms the .env file was actually loaded (Bun auto-loads .env from cwd).
+// Secrets are redacted to a length-only hint so they're safe to print.
+const redact = (v: string | undefined) =>
+  v ? `set(${v.length} chars)` : "MISSING";
+logger.info(
+  "[env] " +
+    [
+      `LLM_PROVIDER=${process.env.LLM_PROVIDER ?? "MISSING"}`,
+      `LLM_BASE_URL=${process.env.LLM_BASE_URL ?? "MISSING"}`,
+      `LLM_MODEL=${process.env.LLM_MODEL ?? "MISSING"}`,
+      `LLM_API_KEY=${redact(process.env.LLM_API_KEY)}`,
+      `OPENAI_API_KEY=${redact(process.env.OPENAI_API_KEY)}`,
+    ].join(" "),
+);

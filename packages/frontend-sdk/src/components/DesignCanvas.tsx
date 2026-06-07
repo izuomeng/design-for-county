@@ -90,15 +90,19 @@ function deriveCanvasState(messages: any[]): CanvasState {
         } else {
           if (pendingStyle?.toolCallId === part.toolCallId) pendingStyle = undefined;
           const out = part.output ?? {};
-          const styleId = out.styleId;
-          const match = options.find((o) => o.id === styleId);
-          const count = Array.isArray(out.styles) ? out.styles.length : match ? 1 : 0;
-          selectedStyle = {
-            label: out.label || match?.label,
-            thumbnailUrl: match?.thumbnailUrl,
-            auto: styleId === "auto" || !match,
-            count,
-          };
+          // Skip parts auto-denied because the user sent a message instead of
+          // picking — there's no real selection to show.
+          if (!out.denied) {
+            const styleId = out.styleId;
+            const match = options.find((o) => o.id === styleId);
+            const count = Array.isArray(out.styles) ? out.styles.length : match ? 1 : 0;
+            selectedStyle = {
+              label: out.label || match?.label,
+              thumbnailUrl: match?.thumbnailUrl,
+              auto: styleId === "auto" || !match,
+              count,
+            };
+          }
         }
       } else if (type === "tool-confirmBrief") {
         pendingBriefId = !isAnswered(part) ? part.toolCallId : undefined;

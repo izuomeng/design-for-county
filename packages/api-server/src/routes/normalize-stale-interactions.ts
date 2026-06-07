@@ -13,13 +13,21 @@ function isToolPart(part: any): boolean {
   );
 }
 
-function isAskUserPart(part: any): boolean {
-  return (
-    isToolPart(part) &&
-    // Support both new "askUser" and legacy "userSelect" parts in history
-    (part.type === `${TOOL_PART_TYPE_PREFIX}askUser` ||
-     part.type === `${TOOL_PART_TYPE_PREFIX}userSelect`)
-  );
+// Client-side interactive tools (no server execute) that wait on the user via
+// an "input-available" part. If the user sends a new message instead of
+// responding, the assistant's tool_call has no matching tool result and the
+// model API rejects the next request — so these must be converted to
+// output-denied. Covers askUser plus the packaging-design canvas tools.
+const INPUT_REQUEST_TOOLS = new Set([
+  "askUser",
+  "userSelect", // legacy
+  "selectStyle",
+  "confirmBrief",
+]);
+
+function isInputRequestPart(part: any): boolean {
+  if (!isToolPart(part) || typeof part.type !== "string") return false;
+  return INPUT_REQUEST_TOOLS.has(part.type.slice(TOOL_PART_TYPE_PREFIX.length));
 }
 
 function shouldAutoDeny(part: any): boolean {
@@ -75,9 +83,10 @@ export function normalizeStaleInteractions(messages: any[]): any[] {
         };
       }
 
-      // Stale askUser: user moved on past a pending input request
+      // Stale input request (askUser / selectStyle / confirmBrief): user moved
+      // on past a pending interaction without responding to it.
       const denySelectBecauseMovedOn =
-        isAskUserPart(part) &&
+        isInputRequestPart(part) &&
         part.state === TOOL_PART_STATE.INPUT_AVAILABLE &&
         hasLaterUserMessage;
 
