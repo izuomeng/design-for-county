@@ -41,8 +41,32 @@ type AskUserCardProps = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Normalize a single enum entry to its raw string value. Tolerates entries
+ * passed as objects (e.g. `{ value, label }` or `{ const, title }`) instead of
+ * plain strings — otherwise `String(opt)` would render "[object Object]".
+ */
+function optionValue(opt: any): string {
+  if (opt != null && typeof opt === "object") {
+    const raw = opt.value ?? opt.const ?? opt.id ?? opt.key;
+    if (raw != null) return String(raw);
+  }
+  return String(opt);
+}
+
+/**
+ * Resolve the user-facing label for an enum entry, preferring (in order):
+ * the explicit `enumLabels` map, an inline label on an object entry, then the
+ * raw value.
+ */
 function enumLabel(value: any, enumLabels?: Record<string, string>): string {
-  return enumLabels?.[String(value)] ?? String(value);
+  const val = optionValue(value);
+  if (enumLabels?.[val] != null) return enumLabels[val];
+  if (value != null && typeof value === "object") {
+    const inline = value.label ?? value.title ?? value.name ?? value.description;
+    if (inline != null) return String(inline);
+  }
+  return val;
 }
 
 function formatValue(value: unknown): string {
@@ -76,7 +100,7 @@ function StringEnumField({
     return (
       <div className="flex gap-2">
         {options.map((opt: any) => {
-          const val = String(opt);
+          const val = optionValue(opt);
           const label = enumLabel(opt, field.enumLabels);
           const isSelected = value === val;
           return (
@@ -107,7 +131,7 @@ function StringEnumField({
     >
       <option value="">{t("askUser.selectPlaceholder")}</option>
       {options.map((opt: any) => {
-        const val = String(opt);
+        const val = optionValue(opt);
         return (
           <option key={val} value={val}>
             {enumLabel(opt, field.enumLabels)}
@@ -279,7 +303,7 @@ function CheckboxGroupField({
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((opt: any) => {
-        const val = String(opt);
+        const val = optionValue(opt);
         const label = enumLabel(opt, field.enumLabels);
         const checked = value.includes(val);
         return (
