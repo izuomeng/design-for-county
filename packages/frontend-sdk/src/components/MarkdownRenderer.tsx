@@ -2,6 +2,7 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
+import { SmartImage } from "./SmartImage";
 
 /** Copy button for code blocks */
 function CodeCopyButton({ code }: { code: string }) {
@@ -269,15 +270,14 @@ const components: Components = {
     );
   },
 
-  // Images
-  img({ src, alt, ...props }) {
+  // Images — gated so streaming/partial URLs don't flash broken or spam 404s.
+  img({ src, alt }) {
     return (
-      <img
-        src={src}
+      <SmartImage
+        src={typeof src === "string" ? src : undefined}
         alt={alt || ""}
         className="my-2 max-w-full rounded-lg"
-        loading="lazy"
-        {...props}
+        imgClassName="block max-w-full h-auto rounded-lg"
       />
     );
   },

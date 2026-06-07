@@ -5,6 +5,7 @@ import { API_URL } from "../config";
 import { studioStore } from "../studio/studio-store";
 import { selectedImageStore } from "../studio/selected-image-store";
 import { downloadImage, ImageLightbox } from "./GeneratedImageCard";
+import { SmartImage } from "./SmartImage";
 
 const zh = () => sdkConfig.locale === "zh-CN";
 const tt = (cn: string, en: string) => (zh() ? cn : en);
@@ -175,7 +176,7 @@ function Welcome() {
             key={src}
             className="mb-3 break-inside-avoid rounded-xl border border-border bg-surface overflow-hidden shadow-card hover:shadow-lg transition-shadow"
           >
-            <img src={src} alt="sample" loading="lazy" className="block w-full h-auto" />
+            <SmartImage src={src} alt="sample" minSkeletonHeight={160} />
           </div>
         ))}
       </div>
@@ -216,12 +217,7 @@ function StyleGrid({
           >
             {/* Show the full reference image (no cropping) so the user sees the
                 complete packaging design before picking. */}
-            <img
-              src={opt.thumbnailUrl}
-              alt={opt.label}
-              loading="lazy"
-              className="block w-full h-auto bg-surface-tertiary"
-            />
+            <SmartImage src={opt.thumbnailUrl} alt={opt.label} minSkeletonHeight={160} />
             <div className="px-3 py-2 text-sm font-medium text-text-primary truncate">
               {opt.label}
             </div>
@@ -247,7 +243,7 @@ function SelectedStyleView({ selected }: { selected: SelectedStyle }) {
       <CanvasTitle>{tt("已选风格", "Selected style")}</CanvasTitle>
       <div className="rounded-2xl border-2 border-ocean-400 bg-surface overflow-hidden shadow-card max-w-xs mx-auto">
         {selected.thumbnailUrl ? (
-          <img src={selected.thumbnailUrl} alt={selected.label} className="block w-full h-auto" />
+          <SmartImage src={selected.thumbnailUrl} alt={selected.label} minSkeletonHeight={200} />
         ) : (
           <div className="aspect-[3/4] flex items-center justify-center text-5xl bg-surface-tertiary">
             ✨
@@ -324,7 +320,14 @@ function BriefCard({
         {Array.isArray(b.productPhotoUrls) && b.productPhotoUrls.length ? (
           <div className="flex gap-2 py-2">
             {b.productPhotoUrls.map((u: string) => (
-              <img key={u} src={u} alt="product" className="w-14 h-14 rounded-lg object-cover border border-border" />
+              <SmartImage
+                key={u}
+                src={u}
+                alt="product"
+                className="w-14 h-14 rounded-lg border border-border shrink-0"
+                imgClassName="w-full h-full object-cover"
+                minSkeletonHeight={0}
+              />
             ))}
           </div>
         ) : null}
@@ -417,7 +420,7 @@ function Gallery({
                 className="relative block w-full group cursor-pointer disabled:cursor-not-allowed"
                 title={tt("选这张，让 AI 在它基础上继续编辑", "Pick this — the AI will edit from it")}
               >
-                <img src={r.url} alt={r.fileName} loading="lazy" className="block w-full h-auto" />
+                <SmartImage src={r.url} alt={r.fileName} minSkeletonHeight={220} />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                 {isSel && (
                   <span className="absolute top-2 right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-ocean-500 text-white text-xs shadow">
