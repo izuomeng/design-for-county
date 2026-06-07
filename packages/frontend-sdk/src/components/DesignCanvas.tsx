@@ -182,8 +182,8 @@ function Welcome() {
         </h2>
         <p className="text-sm text-text-secondary">
           {tt(
-            "看看大家做出来的包装。在左侧把你要做的产品（类别）发给我，比如核桃、蜂蜜、鸡蛋…几步就能出图。",
-            "Browse sample packaging. Tell me what product (category) you want on the left to start.",
+            "这些是过去做过的包装作品，给你找点灵感、参考一下。",
+            "Past packaging designs — browse them for inspiration.",
           )}
         </p>
       </div>
