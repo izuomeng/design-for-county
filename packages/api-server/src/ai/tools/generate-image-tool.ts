@@ -175,6 +175,22 @@ export const generateImage = tool({
 
     const hasReferences = Array.isArray(referenceImageUrls) && referenceImageUrls.length > 0;
 
+    // Print the exact prompt and reference images the agent is sending to
+    // OpenAI, so it's easy to inspect what drives each generation.
+    logger.info(
+      `[generateImage] → OpenAI ${hasReferences ? "edits" : "generations"} ` +
+        `(model=${OPENAI_IMAGE_MODEL}, n=${n}, size=${size}, quality=${quality})`,
+    );
+    logger.info(`[generateImage] prompt:\n${prompt}`);
+    if (hasReferences) {
+      logger.info(
+        `[generateImage] referenceImageUrls (${referenceImageUrls!.length}):\n` +
+          referenceImageUrls!.map((u, i) => `  [${i + 1}] ${u}`).join("\n"),
+      );
+    } else {
+      logger.info("[generateImage] referenceImageUrls: (none)");
+    }
+
     try {
       const result = hasReferences
         ? await generateFromReferences(apiKey, prompt, size, quality, n, referenceImageUrls!)
