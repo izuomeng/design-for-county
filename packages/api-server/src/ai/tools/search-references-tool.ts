@@ -17,7 +17,22 @@ import { logger } from "../../logger";
  * product name when not given), pack form, and spec tier. Matching is soft —
  * it always returns the best available rows rather than blocking on an exact
  * match.
+ *
+ * 宽松模式 (loose search): toggled by the `REFERENCE_LOOSE_SEARCH` env var. When
+ * on, filters are relaxed so more rows surface — the county hard-filter is
+ * dropped and the result cap is raised to return whatever the (currently small)
+ * library can offer. Intended for the transition period while the asset library
+ * is still being filled out; turn it off once there's enough coverage.
  */
+
+/** Hard cap on results returned in 宽松模式, regardless of the requested limit. */
+const LOOSE_MAX_RESULTS = 24;
+
+/** Whether 宽松模式 (loose search) is enabled via `REFERENCE_LOOSE_SEARCH`. */
+function isLooseMode(): boolean {
+  const v = process.env.REFERENCE_LOOSE_SEARCH?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "on" || v === "yes";
+}
 
 /** Extract distinct CJK characters from a string. */
 function cjkChars(s: string): Set<string> {
@@ -127,7 +142,12 @@ export const searchReferences = tool({
         };
       }
 
-      if (county) {
+      const loose = isLooseMode();
+
+      // In 宽松模式 we keep the county hard-filter off so refs from other
+      // counties can still surface while the library is small; otherwise narrow
+      // to the requested county when it yields any matches.
+      if (county && !loose) {
         const filtered = rows.filter((r) => r.county === county);
         if (filtered.length > 0) rows = filtered;
       }
@@ -145,7 +165,10 @@ export const searchReferences = tool({
       });
 
       scored.sort((a, b) => b.score - a.score);
-      const top = scored.slice(0, limit).map(({ r, score }) => ({
+      // 宽松模式: return as many rows as the library can offer (up to a sane cap)
+      // rather than the usual small limit, so the user sees more candidates.
+      const effectiveLimit = loose ? Math.max(limit, Math.min(rows.length, LOOSE_MAX_RESULTS)) : limit;
+      const top = scored.slice(0, effectiveLimit).map(({ r, score }) => ({
         id: r.id,
         productName: r.productName,
         county: r.county,
@@ -167,7 +190,7 @@ export const searchReferences = tool({
       }));
 
       logger.info(
-        `[searchReferences] productName=${productName} category=${resolvedCategory} packForm=${packForm} spec=${spec} → ${top.length} results`,
+        `[searchReferences] productName=${productName} category=${resolvedCategory} packForm=${packForm} spec=${spec} loose=${loose} → ${top.length} results`,
       );
 
       return {
