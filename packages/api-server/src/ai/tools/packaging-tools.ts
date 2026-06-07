@@ -29,9 +29,13 @@ const styleOptionSchema = z.object({
 export const selectStyle = tool({
   description:
     "Present packaging-style reference images for a product category and let the " +
-    "user pick one by looking at pictures (no design jargon). Renders an image " +
-    "grid in the right-hand design canvas. Call this right after the category is " +
-    "known. The user may also pick 'let you decide'. Returns { styleId, promptAnchor }.",
+    "user pick ONE OR SEVERAL by looking at pictures (no design jargon). Renders a " +
+    "multi-select image grid in the right-hand design canvas. Call this right after " +
+    "the category is known. The user may also pick 'let you decide'. Returns " +
+    "{ styleId, label, promptAnchor, styles: [{ styleId, label, promptAnchor }, ...] } " +
+    "where `styles` lists every pick in selection order and the top-level fields " +
+    "mirror the FIRST pick (the 主参考 that drives field backfill). For 'let you " +
+    "decide' the output is { styleId: 'auto', styles: [] }.",
   inputSchema: z.object({
     category: z.string().describe("Product category, e.g. 蜂蜜 / 茶 / 果干."),
     options: z

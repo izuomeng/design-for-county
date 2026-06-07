@@ -48,6 +48,8 @@ interface SelectedStyle {
   label?: string;
   thumbnailUrl?: string;
   auto: boolean;
+  /** How many references the user picked (multi-select). */
+  count: number;
 }
 interface CanvasState {
   pendingStyle?: PendingStyle;
@@ -90,10 +92,12 @@ function deriveCanvasState(messages: any[]): CanvasState {
           const out = part.output ?? {};
           const styleId = out.styleId;
           const match = options.find((o) => o.id === styleId);
+          const count = Array.isArray(out.styles) ? out.styles.length : match ? 1 : 0;
           selectedStyle = {
             label: out.label || match?.label,
             thumbnailUrl: match?.thumbnailUrl,
             auto: styleId === "auto" || !match,
+            count,
           };
         }
       } else if (type === "tool-confirmBrief") {
@@ -199,35 +203,76 @@ function StyleGrid({
   onPick: (output: Record<string, unknown>) => void;
   disabled: boolean;
 }) {
+  // Multi-select: tap to toggle, then confirm. The first pick is the 主参考
+  // (drives field backfill in the agent); the rest are extra style references.
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const toggle = (id: string) =>
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+
+  const confirm = () => {
+    const styles = selectedIds
+      .map((id) => pending.options.find((o) => o.id === id))
+      .filter((o): o is StyleOption => Boolean(o))
+      .map((o) => ({ styleId: o.id, label: o.label, promptAnchor: o.promptAnchor }));
+    if (styles.length === 0) return;
+    // Keep styleId/label/promptAnchor at top level (= the 主参考, first pick) for
+    // backward compat with deriveCanvasState; `styles` carries the full list.
+    onPick({ ...styles[0], styles });
+  };
+
   return (
     <CanvasShell>
       <CanvasTitle>
-        {tt("挑一个你喜欢的风格", "Pick a style you like")}
+        {tt("挑你喜欢的风格（可多选）", "Pick the styles you like (multi-select)")}
         {pending.category ? ` · ${pending.category}` : ""}
       </CanvasTitle>
       <div className="columns-2 gap-3 [column-fill:_balance]">
-        {pending.options.map((opt) => (
-          <button
-            key={opt.id}
-            disabled={disabled}
-            onClick={() =>
-              onPick({ styleId: opt.id, label: opt.label, promptAnchor: opt.promptAnchor })
-            }
-            className="group block w-full mb-3 break-inside-avoid text-left rounded-xl border border-border bg-surface overflow-hidden shadow-card hover:border-ocean-400 hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {/* Show the full reference image (no cropping) so the user sees the
-                complete packaging design before picking. */}
-            <SmartImage src={opt.thumbnailUrl} alt={opt.label} minSkeletonHeight={160} />
-            <div className="px-3 py-2 text-sm font-medium text-text-primary truncate">
-              {opt.label}
-            </div>
-          </button>
-        ))}
+        {pending.options.map((opt) => {
+          const idx = selectedIds.indexOf(opt.id);
+          const picked = idx >= 0;
+          return (
+            <button
+              key={opt.id}
+              disabled={disabled}
+              onClick={() => toggle(opt.id)}
+              className={`group relative block w-full mb-3 break-inside-avoid text-left rounded-xl border bg-surface overflow-hidden shadow-card transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                picked
+                  ? "border-ocean-500 ring-2 ring-ocean-400"
+                  : "border-border hover:border-ocean-400 hover:shadow-lg"
+              }`}
+            >
+              {/* Selection order badge (1, 2, 3…) — #1 is the 主参考. */}
+              {picked && (
+                <span className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-6 h-6 rounded-full bg-ocean-500 text-white text-xs font-semibold shadow">
+                  {idx + 1}
+                </span>
+              )}
+              {/* Show the full reference image (no cropping) so the user sees the
+                  complete packaging design before picking. */}
+              <SmartImage src={opt.thumbnailUrl} alt={opt.label} minSkeletonHeight={160} />
+              <div className="px-3 py-2 text-sm font-medium text-text-primary truncate">
+                {opt.label}
+              </div>
+            </button>
+          );
+        })}
       </div>
       <button
+        disabled={disabled || selectedIds.length === 0}
+        onClick={confirm}
+        className="mt-4 w-full py-2.5 rounded-xl bg-ocean-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        {selectedIds.length > 0
+          ? tt(`用这 ${selectedIds.length} 张 ✅`, `Use these ${selectedIds.length} ✅`)
+          : tt("先点选一张或多张", "Select one or more first")}
+      </button>
+      <button
         disabled={disabled}
-        onClick={() => onPick({ styleId: "auto", label: tt("你帮我选", "You decide"), promptAnchor: "" })}
-        className="mt-4 w-full py-2.5 rounded-xl border border-dashed border-border text-sm font-medium text-text-secondary hover:bg-surface-tertiary transition-colors cursor-pointer disabled:opacity-50"
+        onClick={() => onPick({ styleId: "auto", label: tt("你帮我选", "You decide"), promptAnchor: "", styles: [] })}
+        className="mt-3 w-full py-2.5 rounded-xl border border-dashed border-border text-sm font-medium text-text-secondary hover:bg-surface-tertiary transition-colors cursor-pointer disabled:opacity-50"
       >
         {tt("都行，你帮我选 ✨", "Any is fine — you decide ✨")}
       </button>
@@ -254,7 +299,11 @@ function SelectedStyleView({ selected }: { selected: SelectedStyle }) {
             ✓
           </span>
           <span className="text-sm font-semibold text-text-primary">
-            {selected.auto ? tt("由 AI 为你挑选风格", "AI-picked style") : selected.label}
+            {selected.auto
+              ? tt("由 AI 为你挑选风格", "AI-picked style")
+              : selected.count > 1
+                ? tt(`${selected.label} 等 ${selected.count} 张参考`, `${selected.label} +${selected.count - 1} more`)
+                : selected.label}
           </span>
         </div>
       </div>
