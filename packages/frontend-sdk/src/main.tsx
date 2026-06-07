@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { ChatWidget } from "./components/ChatWidget";
+import { PackagingStudio } from "./components/PackagingStudio";
 import { functionRegistry, skillRegistry } from "./registry";
 import { wsClient } from "./runtime/ws-client";
 import { FUNCTION_TYPE, OPERATION_TYPE } from "oceanmcp-shared";
@@ -137,6 +138,9 @@ function mountOceanMCP(target?: MountTarget | MountOptions) {
     if (options.debug !== undefined) {
       sdkConfig.debug = options.debug;
     }
+    if (options.studio !== undefined) {
+      sdkConfig.studio = options.studio;
+    }
     if (options.shadowDOM === false) {
       useShadowDOM = false;
     }
@@ -270,7 +274,11 @@ function mountOceanMCP(target?: MountTarget | MountOptions) {
 
     root.render(
       <React.StrictMode>
-        <ChatWidget avatar={sdkConfig.avatar} />
+        {sdkConfig.studio ? (
+          <PackagingStudio avatar={sdkConfig.avatar} />
+        ) : (
+          <ChatWidget avatar={sdkConfig.avatar} />
+        )}
       </React.StrictMode>
     );
 

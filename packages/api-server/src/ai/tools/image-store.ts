@@ -36,6 +36,23 @@ export interface SavedImage {
 }
 
 /**
+ * Persist raw image bytes to {@link IMAGE_DIR}.
+ * Returns the on-disk path and the public URL the frontend can load.
+ */
+export async function saveImageBytes(
+  bytes: Uint8Array | ArrayBuffer | Buffer,
+  ext = "png",
+): Promise<SavedImage> {
+  await ensureDir();
+  const safeExt = /^[a-z0-9]{1,8}$/i.test(ext) ? ext.toLowerCase() : "png";
+  const fileName = `${crypto.randomUUID()}.${safeExt}`;
+  const path = join(IMAGE_DIR, fileName);
+  await Bun.write(path, bytes as any);
+  const url = `${getPublicBaseUrl()}${IMAGE_ROUTE_PREFIX}${fileName}`;
+  return { fileName, url, path };
+}
+
+/**
  * Decode a base64-encoded image and persist it to {@link IMAGE_DIR}.
  * Returns the on-disk path and the public URL the frontend can load.
  */
@@ -43,10 +60,5 @@ export async function saveImageBase64(
   base64: string,
   ext = "png",
 ): Promise<SavedImage> {
-  await ensureDir();
-  const fileName = `${crypto.randomUUID()}.${ext}`;
-  const path = join(IMAGE_DIR, fileName);
-  await Bun.write(path, Buffer.from(base64, "base64"));
-  const url = `${getPublicBaseUrl()}${IMAGE_ROUTE_PREFIX}${fileName}`;
-  return { fileName, url, path };
+  return saveImageBytes(Buffer.from(base64, "base64"), ext);
 }

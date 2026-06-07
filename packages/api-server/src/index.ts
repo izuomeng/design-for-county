@@ -9,7 +9,7 @@ import {
 } from "oceanmcp-shared";
 import { handleChatRequest } from "./routes/chat";
 import { handleGenerateTitleRequest } from "./routes/generate-title";
-import { IMAGE_DIR, IMAGE_ROUTE_PREFIX } from "./ai/tools/image-store";
+import { IMAGE_DIR, IMAGE_ROUTE_PREFIX, saveImageBytes } from "./ai/tools/image-store";
 import { join } from "node:path";
 import { connectionManager } from "./ws/connection-manager";
 import { initSkills, getSkillsContext } from "./ai/prompts";
@@ -66,6 +66,35 @@ const server = Bun.serve<{ connectionId: string }>({
           "Cache-Control": "public, max-age=31536000, immutable",
         },
       });
+    }
+
+    // ── File upload (product photos) ────────────────────────────────────
+    // Stores uploaded images and returns public URLs. The frontend's
+    // registered uploader posts here; the URLs are then usable as
+    // generateImage `referenceImageUrls` (image-to-image).
+    if (url.pathname === "/api/upload" && req.method === "POST") {
+      try {
+        const form = await req.formData();
+        const files = form.getAll("files").filter((f): f is File => f instanceof File);
+        const saved = [];
+        for (const file of files) {
+          const name = file.name || "upload.png";
+          const ext = (name.includes(".") ? name.split(".").pop() : "png") || "png";
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const { url: fileUrl } = await saveImageBytes(bytes, ext);
+          saved.push({ url: fileUrl, name, size: file.size, type: file.type });
+        }
+        return Response.json(
+          { files: saved },
+          { headers: { "Access-Control-Allow-Origin": "*" } },
+        );
+      } catch (err) {
+        logger.error("[upload] failed:", err);
+        return Response.json(
+          { error: err instanceof Error ? err.message : String(err) },
+          { status: 500, headers: { "Access-Control-Allow-Origin": "*" } },
+        );
+      }
     }
 
     // ── Chat API ────────────────────────────────────────────────────────

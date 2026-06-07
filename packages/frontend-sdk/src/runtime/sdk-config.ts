@@ -75,6 +75,11 @@ export type SDKConfig = {
   subagent?: SubagentConfig;
   /** Whether to show verbose tool debug cards. Default: false. */
   debug?: boolean;
+  /**
+   * Render the two-pane 寻美 packaging-design studio (left chat + right design
+   * canvas) instead of the plain single-column chat widget. Default: false.
+   */
+  studio?: boolean;
 };
 
 export const LOCALE_CHANGE_EVENT = "ocean-mcp:locale-change";
@@ -219,5 +224,13 @@ export const sdkConfig = {
 
   set debug(value: boolean | undefined) {
     config.debug = value === true;
+  },
+
+  get studio(): boolean {
+    return config.studio === true;
+  },
+
+  set studio(value: boolean | undefined) {
+    config.studio = value === true;
   },
 };

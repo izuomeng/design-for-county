@@ -5,6 +5,7 @@ import { createSubagentTool, SUBAGENT_SERVER_ENABLED } from "./subagent-tool";
 import { askUser } from "./ask-user-tool";
 import { imageOcr } from "./image-ocr-tool";
 import { generateImage } from "./generate-image-tool";
+import { selectStyle, confirmBrief } from "./packaging-tools";
 import { readPdf } from "./read-pdf-tool";
 import type { ToolRetryTracker } from "./retry-tracker";
 import {
@@ -29,6 +30,8 @@ export const serverTools = {
   echo,
   imageOcr,
   generateImage,
+  selectStyle,
+  confirmBrief,
   readPdf,
 };
 
@@ -291,6 +294,8 @@ export function getMergedTools(
     askUser,
     imageOcr,
     generateImage,
+    selectStyle,
+    confirmBrief,
     readPdf,
     // ...serverTools,
     ...getBrowserTools(connectionId, retryTracker),

@@ -182,6 +182,11 @@ export interface MountOptions {
   subagent?: import("./runtime/sdk-config").SubagentConfig;
   /** Whether to show verbose tool debug cards. Default is false. */
   debug?: boolean;
+  /**
+   * Render the two-pane 寻美 packaging-design studio (left chat + right design
+   * canvas) instead of the plain single-column chat widget. Default is false.
+   */
+  studio?: boolean;
 }
 
 // ─── SDK Interface ───────────────────────────────────────────────────────────

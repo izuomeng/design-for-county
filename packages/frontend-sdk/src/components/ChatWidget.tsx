@@ -12,6 +12,7 @@ import { MessageRenderer } from "./MessageRenderer";
 import { wsClient } from "../runtime/ws-client";
 import { chatBridge } from "../runtime/chat-bridge";
 import { uploadRegistry } from "../runtime/upload-registry";
+import { studioStore } from "../studio/studio-store";
 import {
   addSdkBreadcrumb,
   captureException,
@@ -173,8 +174,11 @@ export function evaluateSendAutomatically(
     );
   });
 
+  // Client-side tools (no server execute) whose result must auto-resume the
+  // conversation: askUser plus the packaging-design canvas tools.
+  const AUTO_RESUME_TOOLS = new Set(["askUser", "selectStyle", "confirmBrief"]);
   const settledAskUserParts = toolParts.filter((part: any) => {
-    if (getToolName(part) !== "askUser") return false;
+    if (!AUTO_RESUME_TOOLS.has(getToolName(part))) return false;
     if (!part.toolCallId) return false;
     if (submittedAskUserIds.has(part.toolCallId)) return false;
     return (
@@ -521,6 +525,17 @@ export function ChatWidget({ avatar }: { avatar?: string }) {
   useEffect(() => {
     messagesRef.current = messages as any[];
   }, [messages]);
+
+  // Bridge the live chat runtime to the design-canvas store (studio mode).
+  // Harmless in plain chat mode — no canvas subscribes.
+  useEffect(() => {
+    studioStore.setRuntime({
+      messages: messages as any[],
+      status,
+      addToolResult: addToolResult as any,
+      sendMessage: sendMessage as any,
+    });
+  }, [messages, status, addToolResult, sendMessage]);
 
   const refreshSessionMetas = useCallback(async () => {
     if (!sessionsEnabled) return;

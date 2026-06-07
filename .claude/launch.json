@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "studio",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd packages/frontend-sdk && bun --bun ./node_modules/.bin/vite --port 3001 --host"
+      ],
+      "port": 3001
+    }
+  ]
+}

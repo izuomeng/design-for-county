@@ -725,7 +725,7 @@ function getToolName(part: any): string {
 function isToolMetaPart(part: any): boolean {
   if (!isToolPart(part)) return false;
   const toolName = getToolName(part);
-  if (toolName === "executePlan" || toolName === "userSelect" || toolName === "askUser" || toolName === "subagent" || toolName === "generateImage") return false;
+  if (toolName === "executePlan" || toolName === "userSelect" || toolName === "askUser" || toolName === "subagent" || toolName === "generateImage" || toolName === "selectStyle" || toolName === "confirmBrief") return false;
   if (part.state === TOOL_PART_STATE.APPROVAL_REQUESTED) return false;
   return true;
 }
@@ -976,8 +976,27 @@ export function MessageRenderer({
         );
       }
 
-      // generateImage tool — render the produced image with zoom + download
+      // generateImage tool — render the produced image with zoom + download.
+      // In studio mode the image lives in the right canvas, so the chat only
+      // shows a tiny pointer (avoids a duplicate render).
       if (toolName === "generateImage") {
+        if (sdkConfig.studio) {
+          const settled =
+            state === TOOL_PART_STATE.OUTPUT_AVAILABLE ||
+            state === TOOL_PART_STATE.OUTPUT_ERROR;
+          const zhLocale = sdkConfig.locale === "zh-CN";
+          const hint =
+            state === TOOL_PART_STATE.OUTPUT_ERROR
+              ? zhLocale ? "图片生成失败" : "Image generation failed"
+              : settled
+                ? zhLocale ? "图片已生成，见右侧 →" : "Image ready — see the right →"
+                : zhLocale ? "正在生成图片…" : "Generating image…";
+          return (
+            <div key={toolCallId || index} className="my-1.5">
+              <span className="text-xs text-text-tertiary">{hint}</span>
+            </div>
+          );
+        }
         return (
           <div key={toolCallId || index}>
             <GeneratedImageCard
@@ -987,6 +1006,26 @@ export function MessageRenderer({
               errorText={errorText}
               streamingActive={streamingActive}
             />
+          </div>
+        );
+      }
+
+      // Packaging canvas tools — the real interaction happens in the right
+      // design canvas, so the chat only shows a tiny pointer.
+      if (toolName === "selectStyle" || toolName === "confirmBrief") {
+        const answered =
+          state === TOOL_PART_STATE.OUTPUT_AVAILABLE || output != null;
+        const zhLocale = sdkConfig.locale === "zh-CN";
+        const hint = answered
+          ? zhLocale
+            ? "已在右侧选择 ✓"
+            : "Selected on the right ✓"
+          : zhLocale
+            ? "请在右侧画布操作 →"
+            : "Please use the canvas on the right →";
+        return (
+          <div key={toolCallId || index} className="my-1.5">
+            <span className="text-xs text-text-tertiary">{hint}</span>
           </div>
         );
       }

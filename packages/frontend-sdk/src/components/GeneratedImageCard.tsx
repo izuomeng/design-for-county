@@ -25,7 +25,7 @@ interface GeneratedImageCardProps {
 const zh = () => sdkConfig.locale === "zh-CN";
 const tt = (cn: string, en: string) => (zh() ? cn : en);
 
-async function downloadImage(url: string, fileName: string): Promise<void> {
+export async function downloadImage(url: string, fileName: string): Promise<void> {
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -66,7 +66,7 @@ function ZoomIcon() {
 }
 
 /** Fullscreen lightbox for zooming into the generated image. */
-function ImageLightbox({
+export function ImageLightbox({
   url,
   fileName,
   onClose,

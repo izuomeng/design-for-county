@@ -74,6 +74,21 @@ export type ToolPartState = ValueOf<typeof TOOL_PART_STATE>;
 export const TOOL_PART_TYPE_PREFIX = "tool-" as const;
 
 /**
+ * Names of the packaging-design canvas tools.
+ *
+ * These are client-side tools (no server `execute`): the agent calls them to
+ * drive the right-hand design canvas, and the frontend returns the user's
+ * choice via `addToolResult` — the same pattern as `askUser`.
+ */
+export const PACKAGING_TOOL = {
+  /** Present style reference images for a category; user picks one. */
+  SELECT_STYLE: "selectStyle",
+  /** Show the design brief summary + the explicit "start generating" button. */
+  CONFIRM_BRIEF: "confirmBrief",
+} as const;
+export type PackagingTool = ValueOf<typeof PACKAGING_TOOL>;
+
+/**
  * Safely extract a human-readable error message from any thrown value.
  *
  * Handles:

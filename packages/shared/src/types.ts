@@ -218,6 +218,53 @@ export function isJSONSchemaParameters(
   );
 }
 
+// ─── Packaging Design ────────────────────────────────────────────────────────
+
+/**
+ * A single packaging-style option shown as an image card in the design canvas.
+ * Produced by the agent (from the 寻美 style library) and rendered by the
+ * frontend `selectStyle` canvas widget.
+ */
+export interface StyleOption {
+  /** Stable id returned to the agent when the user picks this style. */
+  id: string;
+  /** Short human-readable label (small caption under the image). */
+  label: string;
+  /** URL of the style reference thumbnail. */
+  thumbnailUrl: string;
+  /**
+   * Style prompt fragment to inject into `generateImage` when this style is
+   * chosen — the "风格锚" that keeps output on-brand.
+   */
+  promptAnchor: string;
+}
+
+/**
+ * Structured packaging design brief, collected across the guided flow and
+ * shown in the confirmation summary card before generation.
+ */
+export interface DesignBrief {
+  /** Product category, e.g. 蜂蜜 / 茶 / 果干. */
+  category: string;
+  /** Chosen style label or id. */
+  style?: string;
+  /** Product name printed on the packaging. */
+  productName: string;
+  /** Origin / 产地 (may be pre-filled from a partner county). */
+  origin?: string;
+  /** Selling points, guessed by the agent and confirmed by the user. */
+  sellingPoints?: string[];
+  /** Uploaded product photo URLs, used for image-to-image generation. */
+  productPhotoUrls?: string[];
+}
+
+/** A single generated packaging image. */
+export interface GenerationResult {
+  url: string;
+  fileName: string;
+  revisedPrompt?: string;
+}
+
 // ─── DOM Render Descriptor ───────────────────────────────────────────────────
 
 /**
